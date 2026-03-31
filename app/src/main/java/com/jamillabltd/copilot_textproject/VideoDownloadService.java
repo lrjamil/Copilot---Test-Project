@@ -38,11 +38,13 @@ public class VideoDownloadService extends Service {
     private static final int NOTIFICATION_ID = 1001;
 
     // Intent extras
-    public static final String EXTRA_URL        = "extra_url";
-    public static final String EXTRA_FORMAT     = "extra_format";
-    public static final String EXTRA_AUDIO_ONLY = "extra_audio_only";
-    public static final String EXTRA_FOLDER_URI = "extra_folder_uri";
-    public static final String EXTRA_DIRECT_URL = "extra_direct_url";
+    public static final String EXTRA_URL           = "extra_url";
+    public static final String EXTRA_FORMAT        = "extra_format";
+    public static final String EXTRA_AUDIO_ONLY    = "extra_audio_only";
+    public static final String EXTRA_FOLDER_URI    = "extra_folder_uri";
+    public static final String EXTRA_DIRECT_URL    = "extra_direct_url";
+    /** Quality label (e.g. "720p", "1080p") used when no direct URL is provided. */
+    public static final String EXTRA_QUALITY_LABEL = "extra_quality_label";
 
     // Broadcast actions
     public static final String ACTION_PROGRESS       = "com.jamillabltd.ACTION_PROGRESS";
@@ -84,11 +86,12 @@ public class VideoDownloadService extends Service {
         boolean audioOnly = intent.getBooleanExtra(EXTRA_AUDIO_ONLY, false);
         String folderUri = intent.getStringExtra(EXTRA_FOLDER_URI);
         String directUrl = intent.getStringExtra(EXTRA_DIRECT_URL);
+        String qualityLabel = intent.getStringExtra(EXTRA_QUALITY_LABEL);
 
         isCancelled = false; // Reset for new task
         startForeground(NOTIFICATION_ID, buildNotification("Starting download…"));
 
-        executor.execute(() -> download(url, format, audioOnly, folderUri, directUrl, startId));
+        executor.execute(() -> download(url, format, audioOnly, folderUri, directUrl, qualityLabel, startId));
         return START_NOT_STICKY;
     }
 
@@ -96,12 +99,22 @@ public class VideoDownloadService extends Service {
     // Download logic
     // -------------------------------------------------------------------------
 
-    private void download(String youtubeUrl, String format, boolean audioOnly, String folderUriStr, String directUrl, int startId) {
+    private void download(String youtubeUrl, String format, boolean audioOnly, String folderUriStr, String directUrl, String qualityLabel, int startId) {
         String fileName = "download.mp4"; // Default
         try {
             String streamUrl;
             if (directUrl != null) {
                 streamUrl = directUrl;
+            } else if (qualityLabel != null && !qualityLabel.isEmpty()) {
+                broadcastProgress(0, "Fetching " + qualityLabel + " stream…");
+                YoutubeFormat qf = YoutubeHelper.getFormatByQuality(youtubeUrl, qualityLabel);
+                streamUrl = qf.url;
+                // Reflect actual quality in the file name extension
+                if (qf.mimeType != null && qf.mimeType.contains("audio")) {
+                    format = "mp3";
+                } else {
+                    format = qf.getExtension();
+                }
             } else {
                 broadcastProgress(0, "Extracting stream URL…");
                 streamUrl = YoutubeHelper.extractStreamUrlSync(youtubeUrl);
