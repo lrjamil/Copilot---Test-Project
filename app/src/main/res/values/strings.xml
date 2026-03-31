@@ -1,10 +1,10 @@
 <resources>
-    <string name="app_name">Copilot - TextProject</string>
+    <string name="app_name">LR Video Downloader</string>
     <string name="app_title">YouTube Video Downloader</string>
     <string name="hint_youtube_url">Enter YouTube URL</string>
     <string name="hint_format">Select Format</string>
-    <string name="btn_play">▶ Play</string>
-    <string name="btn_stop">⏹ Stop</string>
+    <string name="btn_play">Play</string>
+    <string name="btn_stop">Stop</string>
     <string name="btn_download_video">⬇ Download Video</string>
     <string name="btn_extract_audio">🎵 Extract Audio</string>
     <string name="label_status">Status Log:</string>
@@ -23,6 +23,12 @@
     <string name="channel_id">yt_downloader_channel</string>
     <string name="channel_name">YouTube Downloader</string>
     <string name="notification_title">Downloading…</string>
+    <string name="dialog_title_confirm_download">Confirm Download</string>
+    <string name="dialog_msg_download_to">The file will be saved to:\n\n%1$s\n\nDo you want to proceed or change the location?</string>
+    <string name="btn_confirm">Download</string>
+    <string name="btn_change_location">Change Location</string>
+    <string name="msg_folder_selected">Download location updated.</string>
+    <string name="lr_video_downloader">LR Video Downloader</string>
 
     <string-array name="video_formats">
         <item>MP4 (Video)</item>

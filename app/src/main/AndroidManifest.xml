@@ -22,7 +22,9 @@
         android:theme="@style/Theme.CopilotTextProject">
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

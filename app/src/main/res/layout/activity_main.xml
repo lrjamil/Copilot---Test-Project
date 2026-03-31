@@ -1,168 +1,260 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
     tools:context=".MainActivity">
 
-    <LinearLayout
+    <!-- App Header - LR Video Downloader -->
+    <RelativeLayout
+        android:id="@+id/header_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:background="@drawable/bg_app_header"
+        android:layout_alignParentTop="true"
+        android:elevation="6dp">
 
-        <!-- Title -->
         <TextView
-            android:layout_width="match_parent"
+            android:id="@+id/header_title"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/app_title"
+            android:text="@string/lr_video_downloader"
+            android:paddingTop="40dp"
+            android:textColor="#FFFFFF"
             android:textSize="22sp"
             android:textStyle="bold"
-            android:gravity="center"
-            android:layout_marginBottom="16dp" />
+            android:layout_centerInParent="true"
+            android:paddingBottom="12dp"
+            android:shadowColor="#40000000"
+            android:shadowDx="2"
+            android:shadowDy="2"
+            android:shadowRadius="4"/>
 
-        <!-- ExoPlayer video view -->
+    </RelativeLayout>
+
+    <!-- ExoPlayer video view with overlay controls - Below Header -->
+    <FrameLayout
+        android:id="@+id/player_container"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:background="#000000"
+        android:layout_below="@+id/header_container">
+
         <androidx.media3.ui.PlayerView
             android:id="@+id/player_view"
             android:layout_width="match_parent"
-            android:layout_height="220dp"
+            android:layout_height="match_parent"
             android:background="#000000"
-            android:layout_marginBottom="16dp"
             app:use_controller="true"
             app:show_timeout="5000" />
 
-        <!-- URL input -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/hint_youtube_url"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_marginBottom="12dp">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_url"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textUri"
-                android:imeOptions="actionDone"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Format selection -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/hint_format"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-            android:layout_marginBottom="12dp">
-
-            <AutoCompleteTextView
-                android:id="@+id/spinner_format"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:focusable="false"
-                android:inputType="none" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Action buttons row 1 -->
+        <!-- Custom Overlays -->
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
             android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_play"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/btn_play"
-                android:layout_marginEnd="4dp"
-                app:icon="@android:drawable/ic_media_play" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_stop"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/btn_stop"
-                android:layout_marginStart="4dp"
-                style="@style/Widget.Material3.Button.TonalButton"
-                app:icon="@android:drawable/ic_media_pause" />
-        </LinearLayout>
-
-        <!-- Action buttons row 2 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_download_video"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/btn_download_video"
-                android:layout_marginEnd="4dp"
-                style="@style/Widget.Material3.Button.TonalButton" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_download_audio"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/btn_extract_audio"
-                android:layout_marginStart="4dp"
-                style="@style/Widget.Material3.Button.TonalButton" />
-        </LinearLayout>
-
-        <!-- Progress bar -->
-        <com.google.android.material.progressindicator.LinearProgressIndicator
-            android:id="@+id/progress_bar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
-            android:visibility="gone" />
-
-        <!-- Progress label -->
-        <TextView
-            android:id="@+id/tv_progress_label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="12sp"
-            android:gravity="end"
-            android:layout_marginBottom="12dp"
-            android:visibility="gone" />
-
-        <!-- Status / log area -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/label_status"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:layout_marginBottom="4dp" />
-
-        <ScrollView
-            android:layout_width="match_parent"
-            android:layout_height="160dp"
-            android:background="#F5F5F5"
             android:padding="8dp">
 
+            <ImageButton
+                android:id="@+id/btn_pip"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_view"
+                android:contentDescription="Overlay Mode"
+                app:tint="#FFFFFF" />
+
+            <ImageButton
+                android:id="@+id/btn_fullscreen"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_zoom"
+                android:contentDescription="Fullscreen"
+                app:tint="#FFFFFF" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- UI Controls - Scrollable below the player -->
+    <ScrollView
+        android:id="@+id/main_scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/player_container"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:id="@+id/main_content_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Title -->
             <TextView
-                android:id="@+id/tv_status"
+                android:id="@+id/tv_app_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="12sp"
-                android:fontFamily="monospace"
-                android:text="" />
-        </ScrollView>
+                android:text="@string/app_title"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="16dp" />
 
-    </LinearLayout>
+            <!-- URL input -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/hint_youtube_url"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_marginBottom="12dp">
 
-</ScrollView>
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_url"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textUri"
+                    android:imeOptions="actionDone"
+                    android:maxLines="1" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Format selection -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/hint_format"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_marginBottom="12dp">
+
+                <AutoCompleteTextView
+                    android:id="@+id/spinner_format"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:focusable="false"
+                    android:inputType="none" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Action buttons row 1 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_play"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/btn_play"
+                    android:layout_marginEnd="4dp"
+                    app:icon="@android:drawable/ic_media_play" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_stop"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/btn_stop"
+                    android:layout_marginStart="4dp"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    app:icon="@android:drawable/ic_media_pause" />
+            </LinearLayout>
+
+            <!-- Action buttons row 2 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_download_video"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/btn_download_video"
+                    android:layout_marginEnd="4dp"
+                    style="@style/Widget.Material3.Button.TonalButton" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_download_audio"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/btn_extract_audio"
+                    android:layout_marginStart="4dp"
+                    style="@style/Widget.Material3.Button.TonalButton" />
+            </LinearLayout>
+
+            <!-- Progress container -->
+            <RelativeLayout
+                android:id="@+id/progress_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone">
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progress_bar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toStartOf="@id/btn_cancel_download"
+                    android:layout_centerVertical="true"
+                    android:layout_marginEnd="8dp" />
+
+                <ImageButton
+                    android:id="@+id/btn_cancel_download"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:contentDescription="Cancel Download"
+                    app:tint="#6A1B9A" />
+
+                <TextView
+                    android:id="@+id/tv_progress_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/progress_bar"
+                    android:layout_alignStart="@id/progress_bar"
+                    android:layout_marginTop="4dp"
+                    android:text=""
+                    android:textSize="11sp" />
+
+            </RelativeLayout>
+
+            <!-- Status / log area -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/label_status"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
+                android:background="#F5F5F5"
+                android:padding="8dp">
+
+                <TextView
+                    android:id="@+id/tv_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textIsSelectable="true"
+                    android:fontFamily="monospace"
+                    android:text="" />
+            </ScrollView>
+
+        </LinearLayout>
+    </ScrollView>
+
+</RelativeLayout>
