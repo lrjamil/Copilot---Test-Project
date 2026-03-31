@@ -3,24 +3,24 @@ package com.jamillabltd.copilot_textproject;
 import android.util.Log;
 
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /**
- * Helper class for extracting playable stream URLs from YouTube video pages.
+ * Helper class for extracting playable stream URLs from YouTube videos.
  *
- * <p>This implementation uses YouTube's public web page to locate the video stream URL.
- * For production use, integrate a maintained extractor library (e.g., NewPipe Extractor
- * or the youtubedl-android yt-dlp wrapper) to handle YouTube's evolving page structure.
+ * <p>Uses YouTube's Innertube API (the same internal API used by YouTube's own
+ * Android client) to obtain stream manifests. Supports all common YouTube URL
+ * formats including regular watch links, short youtu.be links, and Shorts.
  */
 public final class YoutubeHelper {
 
@@ -33,9 +33,39 @@ public final class YoutubeHelper {
             .writeTimeout(15, TimeUnit.SECONDS)
             .build();
 
-    /** Pattern to find a direct MP4 stream URL inside YouTube's page source. */
+    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+
+    /** Innertube player endpoint (no key needed for ANDROID_TESTSUITE client). */
+    private static final String INNERTUBE_URL =
+            "https://www.youtube.com/youtubei/v1/player";
+
+    /**
+     * User-Agent that matches the ANDROID_TESTSUITE client config below.
+     * Version 17.36.4 is a known-good value; update if Innertube API requests
+     * start receiving HTTP 403 or empty stream lists.
+     */
+    private static final String USER_AGENT =
+            "com.google.android.youtube/17.36.4 (Linux; U; Android 12) gzip";
+
+    /**
+     * Innertube request body template – %s is replaced with the video ID.
+     * Uses the lightweight ANDROID_TESTSUITE client which returns plain stream
+     * URLs without cipher/signature scrambling.
+     */
+    private static final String INNERTUBE_BODY_TEMPLATE =
+            "{\"context\":{\"client\":{"
+            + "\"clientName\":\"ANDROID_TESTSUITE\","
+            + "\"clientVersion\":\"1.9\","
+            + "\"androidSdkVersion\":30,"
+            + "\"hl\":\"en\",\"gl\":\"US\""
+            + "}},\"videoId\":\"%s\"}";
+
+    /**
+     * Matches a stream URL inside the Innertube JSON response.
+     * The URL is a googlevideo.com direct-download link.
+     */
     private static final Pattern STREAM_URL_PATTERN =
-            Pattern.compile("\"url\":\"(https://[^\"]+\\.googlevideo\\.com[^\"]+)\"");
+            Pattern.compile("\"url\":\"(https://[^\"]*\\.googlevideo\\.com[^\"]*)\"");
 
     private YoutubeHelper() {}
 
@@ -70,7 +100,7 @@ public final class YoutubeHelper {
     }
 
     /**
-     * Synchronously extracts a playable stream URL.
+     * Synchronously extracts a playable stream URL via the Innertube API.
      * Must NOT be called on the main thread.
      */
     static String extractStreamUrlSync(String youtubeUrl) throws IOException {
@@ -79,31 +109,39 @@ public final class YoutubeHelper {
             throw new IOException("Invalid YouTube URL – could not parse video ID.");
         }
 
-        String pageUrl = "https://www.youtube.com/watch?v=" + videoId + "&hl=en";
+        String body = String.format(INNERTUBE_BODY_TEMPLATE, videoId);
+        RequestBody requestBody = RequestBody.create(body, JSON);
+
         Request request = new Request.Builder()
-                .url(pageUrl)
-                .header("User-Agent",
-                        "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 "
-                                + "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
-                .header("Accept-Language", "en-US,en;q=0.9")
+                .url(INNERTUBE_URL)
+                .post(requestBody)
+                .header("Content-Type", "application/json")
+                .header("User-Agent", USER_AGENT)
                 .build();
 
         try (Response response = HTTP_CLIENT.newCall(request).execute()) {
             if (!response.isSuccessful() || response.body() == null) {
-                throw new IOException("HTTP " + response.code() + " fetching YouTube page.");
+                throw new IOException("HTTP " + response.code() + " from Innertube API.");
             }
-            String body = response.body().string();
-            return parseStreamUrl(body);
+            String responseBody = response.body().string();
+            return parseStreamUrl(responseBody);
         }
     }
 
     /**
-     * Extracts the 11-character YouTube video ID from a variety of URL formats.
+     * Extracts the 11-character YouTube video ID from a variety of URL formats:
+     * <ul>
+     *   <li>{@code https://www.youtube.com/watch?v=VIDEO_ID}</li>
+     *   <li>{@code https://youtu.be/VIDEO_ID}</li>
+     *   <li>{@code https://youtube.com/shorts/VIDEO_ID}</li>
+     *   <li>{@code https://www.youtube.com/embed/VIDEO_ID}</li>
+     * </ul>
+     * Query parameters such as {@code ?si=} and {@code ?t=} are ignored.
      */
     public static String extractVideoId(String url) {
         if (url == null || url.isEmpty()) return null;
 
-        // Standard watch URL: ?v=VIDEO_ID
+        // Standard watch URL: ?v=VIDEO_ID (also handles extra params like &si=)
         Pattern watchPattern = Pattern.compile("[?&]v=([a-zA-Z0-9_-]{11})");
         Matcher m = watchPattern.matcher(url);
         if (m.find()) return m.group(1);
@@ -111,6 +149,11 @@ public final class YoutubeHelper {
         // Short URL: youtu.be/VIDEO_ID
         Pattern shortPattern = Pattern.compile("youtu\\.be/([a-zA-Z0-9_-]{11})");
         m = shortPattern.matcher(url);
+        if (m.find()) return m.group(1);
+
+        // Shorts URL: /shorts/VIDEO_ID
+        Pattern shortsPattern = Pattern.compile("/shorts/([a-zA-Z0-9_-]{11})");
+        m = shortsPattern.matcher(url);
         if (m.find()) return m.group(1);
 
         // Embed URL: /embed/VIDEO_ID
@@ -121,17 +164,14 @@ public final class YoutubeHelper {
         return null;
     }
 
-    private static String parseStreamUrl(String pageBody) throws IOException {
-        Matcher m = STREAM_URL_PATTERN.matcher(pageBody);
+    private static String parseStreamUrl(String json) throws IOException {
+        Matcher m = STREAM_URL_PATTERN.matcher(json);
         if (m.find()) {
-            String raw = m.group(1);
-            try {
-                return URLDecoder.decode(raw.replace("\\u0026", "&"), StandardCharsets.UTF_8.name());
-            } catch (Exception e) {
-                return raw;
-            }
+            // Unescape JSON unicode sequences and forward-slashes
+            return m.group(1)
+                    .replace("\\u0026", "&")
+                    .replace("\\/", "/");
         }
-        throw new IOException(
-                "Stream URL not found in page. YouTube may have changed its structure.");
+        throw new IOException("Could not extract stream URL. Check the URL and try again.");
     }
 }
