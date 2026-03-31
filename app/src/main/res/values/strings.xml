@@ -13,6 +13,7 @@
     <string name="msg_playback_started">Playback started.</string>
     <string name="msg_playback_stopped">Playback stopped.</string>
     <string name="msg_download_started">Download started…</string>
+    <string name="msg_download_started_quality">Download started… (%1$s)</string>
     <string name="msg_download_complete">Download complete: %1$s</string>
     <string name="msg_download_failed">Download failed: %1$s</string>
     <string name="msg_audio_extract_started">Audio extraction started…</string>

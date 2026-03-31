@@ -106,18 +106,8 @@ public final class YoutubeHelper {
     }
 
     public interface FormatsCallback {
-        void onSuccess(VideoMetadata metadata);
+        void onSuccess(List<YoutubeFormat> formats);
         void onError(String message);
-    }
-
-    public static class VideoMetadata {
-        public final String title;
-        public final List<YoutubeFormat> formats;
-        
-        public VideoMetadata(String title, List<YoutubeFormat> formats) {
-            this.title = title;
-            this.formats = formats;
-        }
     }
 
     /**
@@ -143,8 +133,8 @@ public final class YoutubeHelper {
     public static void fetchFormatsAsync(String youtubeUrl, FormatsCallback callback) {
         EXECUTOR.execute(() -> {
             try {
-                VideoMetadata metadata = fetchFormatsSync(youtubeUrl);
-                callback.onSuccess(metadata);
+                List<YoutubeFormat> formats = fetchFormatsSync(youtubeUrl);
+                callback.onSuccess(formats);
             } catch (Exception e) {
                 Log.e(TAG, "Format extraction failed", e);
                 callback.onError(e.getMessage() != null ? e.getMessage() : "Unknown error");
@@ -157,8 +147,7 @@ public final class YoutubeHelper {
      * Must NOT be called on the main thread.
      */
     static String extractStreamUrlSync(String youtubeUrl) throws IOException {
-        VideoMetadata metadata = fetchFormatsSync(youtubeUrl);
-        List<YoutubeFormat> formats = metadata.formats;
+        List<YoutubeFormat> formats = fetchFormatsSync(youtubeUrl);
         if (formats.isEmpty()) throw new IOException("No playable formats found.");
         
         // Return the first muxed format (video+audio) or just the first available
@@ -171,13 +160,12 @@ public final class YoutubeHelper {
     /**
      * Synchronously fetches all available formats for a video.
      */
-    static VideoMetadata fetchFormatsSync(String youtubeUrl) throws IOException {
+    static List<YoutubeFormat> fetchFormatsSync(String youtubeUrl) throws IOException {
         String videoId = extractVideoId(youtubeUrl);
         if (videoId == null) {
             throw new IOException("Invalid YouTube URL – could not parse video ID.");
         }
 
-        String videoTitle = "download";
         // Use Maps to ensure unique resolutions and clients
         Map<String, YoutubeFormat> videoFormats = new HashMap<>(); // Key: "720p", "1080p", etc.
         List<YoutubeFormat> audioFormats = new ArrayList<>();
@@ -198,13 +186,7 @@ public final class YoutubeHelper {
 
                 try (Response response = HTTP_CLIENT.newCall(request).execute()) {
                     if (response.isSuccessful() && response.body() != null) {
-                        String json = response.body().string();
-                        // Extract Title from the first successful client response
-                        if ("download".equals(videoTitle)) {
-                            videoTitle = extractTitle(json);
-                        }
-                        
-                        List<YoutubeFormat> extracted = parseFormats(json, client);
+                        List<YoutubeFormat> extracted = parseFormats(response.body().string(), client);
                         for (YoutubeFormat f : extracted) {
                             if (f.mimeType.startsWith("video")) {
                                 String res = f.qualityLabel != null ? f.qualityLabel : (f.isMuxed ? "360p" : "HD");
@@ -242,19 +224,7 @@ public final class YoutubeHelper {
         if (finalResults.isEmpty()) {
             throw new IOException("No playable MP4 formats found.");
         }
-        return new VideoMetadata(videoTitle, finalResults);
-    }
-
-    private static String extractTitle(String json) {
-        try {
-            JSONObject root = new JSONObject(json);
-            if (root.has("videoDetails")) {
-                return root.getJSONObject("videoDetails").optString("title", "download");
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Title extraction failed", e);
-        }
-        return "download";
+        return finalResults;
     }
 
     private static int parseHeight(String label) {
