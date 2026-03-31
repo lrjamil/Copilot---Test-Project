@@ -171,21 +171,21 @@ public class MainActivity extends AppCompatActivity {
             ArrayAdapter<YoutubeFormat> adapter = new ArrayAdapter<>(
                     this, android.R.layout.simple_dropdown_item_1line, availableFormats);
             binding.spinnerFormat.setAdapter(adapter);
-            
-            // Try to find 720p Recommended
+
+            // Prefer highest-quality muxed format; fall back to highest-quality video; then first item.
             int recommendedIndex = -1;
+            // 1. Best muxed (formats are sorted highest-to-lowest, first muxed = best muxed)
             for (int i = 0; i < availableFormats.size(); i++) {
-                YoutubeFormat f = availableFormats.get(i);
-                if ("720p".equals(f.qualityLabel) && f.isMuxed) {
+                if (availableFormats.get(i).isMuxed) {
                     recommendedIndex = i;
                     break;
                 }
             }
-            
-            // If no 720p, try any muxed format
+            // 2. If no muxed found, use the first video format
             if (recommendedIndex == -1) {
                 for (int i = 0; i < availableFormats.size(); i++) {
-                    if (availableFormats.get(i).isMuxed) {
+                    YoutubeFormat f = availableFormats.get(i);
+                    if (f.mimeType != null && f.mimeType.startsWith("video")) {
                         recommendedIndex = i;
                         break;
                     }
@@ -591,20 +591,33 @@ public class MainActivity extends AppCompatActivity {
 
         String format = selectedFormat;
         String folderUri = downloadConfig.getFolderUriString();
-        
-        // Find specific stream URL for the selected format
-        String selectedStreamUrl = null;
-        for (YoutubeFormat f : availableFormats) {
-            if (f.getDisplayLabel().equals(format)) {
-                selectedStreamUrl = f.url;
-                break;
+
+        // Resolve the selected YoutubeFormat (by index first, then by label)
+        YoutubeFormat selectedYtFormat = null;
+        if (selectedFormatIndex != -1 && selectedFormatIndex < availableFormats.size()) {
+            selectedYtFormat = availableFormats.get(selectedFormatIndex);
+        } else {
+            for (YoutubeFormat f : availableFormats) {
+                if (f.getDisplayLabel().equals(format)) {
+                    selectedYtFormat = f;
+                    break;
+                }
             }
         }
+
+        // Derive direct stream URL and quality label from the resolved format
+        String selectedStreamUrl = selectedYtFormat != null ? selectedYtFormat.url : null;
+        String qualityLabel      = selectedYtFormat != null ? selectedYtFormat.qualityLabel : null;
 
         if (audioOnly) {
             appendLog(getString(R.string.msg_audio_extract_started));
         } else {
-            appendLog(getString(R.string.msg_download_started));
+            String qualityInfo = (qualityLabel != null) ? qualityLabel : null;
+            if (qualityInfo != null) {
+                appendLog(getString(R.string.msg_download_started_quality, qualityInfo));
+            } else {
+                appendLog(getString(R.string.msg_download_started));
+            }
         }
 
         showProgress(0, "0%");
@@ -614,10 +627,13 @@ public class MainActivity extends AppCompatActivity {
         serviceIntent.putExtra(VideoDownloadService.EXTRA_FORMAT, format);
         serviceIntent.putExtra(VideoDownloadService.EXTRA_AUDIO_ONLY, audioOnly);
         if (selectedStreamUrl != null) {
-            serviceIntent.putExtra("extra_direct_url", selectedStreamUrl);
+            serviceIntent.putExtra(VideoDownloadService.EXTRA_DIRECT_URL, selectedStreamUrl);
+        }
+        if (qualityLabel != null) {
+            serviceIntent.putExtra(VideoDownloadService.EXTRA_QUALITY_LABEL, qualityLabel);
         }
         if (folderUri != null) {
-            serviceIntent.putExtra("extra_folder_uri", folderUri);
+            serviceIntent.putExtra(VideoDownloadService.EXTRA_FOLDER_URI, folderUri);
         }
         ContextCompat.startForegroundService(this, serviceIntent);
     }

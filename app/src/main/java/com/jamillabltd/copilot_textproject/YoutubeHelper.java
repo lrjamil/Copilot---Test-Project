@@ -158,9 +158,54 @@ public final class YoutubeHelper {
     }
 
     /**
+     * Synchronously fetches the format matching the given quality label (e.g. "720p", "1080p").
+     * Falls back to the first muxed format, or the first available format, if no exact match.
+     * Must NOT be called on the main thread.
+     *
+     * @param youtubeUrl   full YouTube video URL
+     * @param qualityLabel quality label to search for (e.g. "720p")
+     * @return matching YoutubeFormat, never null
+     * @throws IOException if no formats could be fetched
+     */
+    public static YoutubeFormat getFormatByQuality(String youtubeUrl, String qualityLabel) throws IOException {
+        List<YoutubeFormat> formats = fetchFormatsSync(youtubeUrl);
+        // Prefer exact quality-label match on a muxed stream
+        for (YoutubeFormat f : formats) {
+            if (qualityLabel.equals(f.qualityLabel) && f.isMuxed) return f;
+        }
+        // Accept any stream (including video-only) with the right label
+        for (YoutubeFormat f : formats) {
+            if (qualityLabel.equals(f.qualityLabel)) return f;
+        }
+        // Fallback: first muxed stream
+        for (YoutubeFormat f : formats) {
+            if (f.isMuxed) return f;
+        }
+        return formats.get(0);
+    }
+
+    /**
+     * Synchronously returns the highest quality video format available.
+     * Must NOT be called on the main thread.
+     *
+     * @param youtubeUrl full YouTube video URL
+     * @return highest-quality YoutubeFormat, never null
+     * @throws IOException if no formats could be fetched
+     */
+    public static YoutubeFormat getBestFormat(String youtubeUrl) throws IOException {
+        List<YoutubeFormat> formats = fetchFormatsSync(youtubeUrl);
+        if (formats.isEmpty()) throw new IOException("No formats found for: " + youtubeUrl);
+        // formats are already sorted highest quality first; return first video format
+        for (YoutubeFormat f : formats) {
+            if (f.mimeType != null && f.mimeType.startsWith("video")) return f;
+        }
+        return formats.get(0);
+    }
+
+    /**
      * Synchronously fetches all available formats for a video.
      */
-    static List<YoutubeFormat> fetchFormatsSync(String youtubeUrl) throws IOException {
+    public static List<YoutubeFormat> fetchFormatsSync(String youtubeUrl) throws IOException {
         String videoId = extractVideoId(youtubeUrl);
         if (videoId == null) {
             throw new IOException("Invalid YouTube URL – could not parse video ID.");
