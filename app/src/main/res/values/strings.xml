@@ -1,3 +1,39 @@
 <resources>
     <string name="app_name">Copilot - TextProject</string>
+    <string name="app_title">YouTube Video Downloader</string>
+    <string name="hint_youtube_url">Enter YouTube URL</string>
+    <string name="hint_format">Select Format</string>
+    <string name="btn_play">▶ Play</string>
+    <string name="btn_stop">⏹ Stop</string>
+    <string name="btn_download_video">⬇ Download Video</string>
+    <string name="btn_extract_audio">🎵 Extract Audio</string>
+    <string name="label_status">Status Log:</string>
+    <string name="msg_enter_url">Please enter a YouTube URL.</string>
+    <string name="msg_loading">Loading stream, please wait…</string>
+    <string name="msg_playback_started">Playback started.</string>
+    <string name="msg_playback_stopped">Playback stopped.</string>
+    <string name="msg_download_started">Download started…</string>
+    <string name="msg_download_complete">Download complete: %1$s</string>
+    <string name="msg_download_failed">Download failed: %1$s</string>
+    <string name="msg_audio_extract_started">Audio extraction started…</string>
+    <string name="msg_audio_extract_complete">Audio saved: %1$s</string>
+    <string name="msg_audio_extract_failed">Audio extraction failed: %1$s</string>
+    <string name="msg_no_stream">Could not extract stream URL. Check the URL and try again.</string>
+    <string name="msg_permission_required">Storage permission required to download files.</string>
+    <string name="channel_id">yt_downloader_channel</string>
+    <string name="channel_name">YouTube Downloader</string>
+    <string name="notification_title">Downloading…</string>
+
+    <string-array name="video_formats">
+        <item>MP4 (Video)</item>
+        <item>WebM (Video)</item>
+        <item>3GP (Video)</item>
+    </string-array>
+
+    <string-array name="audio_formats">
+        <item>MP3 (Audio)</item>
+        <item>M4A (Audio)</item>
+        <item>WAV (Audio)</item>
+        <item>OGG (Audio)</item>
+    </string-array>
 </resources>
