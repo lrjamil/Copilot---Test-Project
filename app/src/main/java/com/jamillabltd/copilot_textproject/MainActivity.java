@@ -44,6 +44,8 @@ import androidx.media3.datasource.DataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.datasource.HttpDataSource;
 
+import com.google.android.material.color.DynamicColors;
+import com.google.android.material.snackbar.Snackbar;
 import com.jamillabltd.copilot_textproject.databinding.ActivityMainBinding;
 
 import java.util.ArrayList;
@@ -52,7 +54,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements BottomSheetDownloadOptions.OnDownloadListener {
 
     private ActivityMainBinding binding;
     private ExoPlayer player;
@@ -62,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
     private List<YoutubeFormat> availableFormats = new ArrayList<>();
     private String lastFetchedUrl = "";
     private boolean isFullscreen = false;
+    private String lastFetchedTitle = "download";
 
     private final String UA_ANDROID = "com.google.android.youtube/21.13.163 (Linux; U; Android 12) gzip";
     private final String UA_VR = "com.google.android.youtube.vr/1.50.46 (Linux; U; Android 12) gzip";
@@ -118,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        DynamicColors.applyToActivityIfAvailable(this);
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
@@ -248,6 +252,10 @@ public class MainActivity extends AppCompatActivity {
             cancelIntent.setAction(VideoDownloadService.ACTION_CANCEL);
             startService(cancelIntent);
             appendLog("Cancelling download…");
+        });
+
+        binding.btnHistory.setOnClickListener(v -> {
+            startActivity(new Intent(this, HistoryActivity.class));
         });
     }
 
@@ -478,10 +486,11 @@ public class MainActivity extends AppCompatActivity {
         showProgress(10, "Fetching…");
         YoutubeHelper.fetchFormatsAsync(url, new YoutubeHelper.FormatsCallback() {
             @Override
-            public void onSuccess(List<YoutubeFormat> formats) {
+            public void onSuccess(YoutubeHelper.VideoMetadata metadata) {
                 runOnUiThread(() -> {
                     hideProgress();
-                    
+                    lastFetchedTitle = metadata.title;
+                    List<YoutubeFormat> formats = metadata.formats;
                     // Filter formats based on user preference
                     List<YoutubeFormat> filtered = new ArrayList<>();
                     
@@ -547,37 +556,26 @@ public class MainActivity extends AppCompatActivity {
 
         if (!checkStoragePermission()) return;
 
-        showDownloadConfirmationDialog(audioOnly);
+        isCurrentlyDownloadingAudio = audioOnly; // Track for callback
+        BottomSheetDownloadOptions sheet = BottomSheetDownloadOptions.newInstance(downloadConfig.getDisplayPath());
+        sheet.show(getSupportFragmentManager(), "BottomSheetDownload");
     }
 
-    private void showDownloadConfirmationDialog(boolean audioOnly) {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_custom_download, null);
-        TextView tvPath = dialogView.findViewById(R.id.tv_dialog_path);
-        com.google.android.material.button.MaterialButton btnConfirm = dialogView.findViewById(R.id.btn_dialog_confirm);
-        com.google.android.material.button.MaterialButton btnChange = dialogView.findViewById(R.id.btn_dialog_change);
-        com.google.android.material.button.MaterialButton btnCancel = dialogView.findViewById(R.id.btn_dialog_cancel);
+    private boolean isCurrentlyDownloadingAudio = false;
 
-        tvPath.setText(downloadConfig.getDisplayPath());
+    @Override
+    public void onConfirm() {
+        startDownloadService(isCurrentlyDownloadingAudio);
+    }
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setView(dialogView)
-                .create();
+    @Override
+    public void onChangeLocation() {
+        folderPickerLauncher.launch(null);
+    }
 
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_dialog_custom);
-        }
-
-        btnConfirm.setOnClickListener(v -> {
-            startDownloadService(audioOnly);
-            dialog.dismiss();
-        });
-        btnChange.setOnClickListener(v -> {
-            folderPickerLauncher.launch(null);
-            dialog.dismiss();
-        });
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
-
-        dialog.show();
+    @Override
+    public void onCancel() {
+        appendLog("Download cancelled.");
     }
 
     private void startDownloadService(boolean audioOnly) {
@@ -613,6 +611,7 @@ public class MainActivity extends AppCompatActivity {
         serviceIntent.putExtra(VideoDownloadService.EXTRA_URL, url);
         serviceIntent.putExtra(VideoDownloadService.EXTRA_FORMAT, format);
         serviceIntent.putExtra(VideoDownloadService.EXTRA_AUDIO_ONLY, audioOnly);
+        serviceIntent.putExtra("extra_title", lastFetchedTitle); // Pass the title
         if (selectedStreamUrl != null) {
             serviceIntent.putExtra("extra_direct_url", selectedStreamUrl);
         }

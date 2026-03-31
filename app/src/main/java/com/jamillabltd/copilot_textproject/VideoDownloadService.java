@@ -21,6 +21,9 @@ import java.io.OutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.jamillabltd.copilot_textproject.db.AppDatabase;
+import com.jamillabltd.copilot_textproject.db.DownloadItem;
+
 import androidx.documentfile.provider.DocumentFile;
 import android.net.Uri;
 
@@ -84,11 +87,14 @@ public class VideoDownloadService extends Service {
         boolean audioOnly = intent.getBooleanExtra(EXTRA_AUDIO_ONLY, false);
         String folderUri = intent.getStringExtra(EXTRA_FOLDER_URI);
         String directUrl = intent.getStringExtra(EXTRA_DIRECT_URL);
+        String title     = intent.getStringExtra("extra_title");
+        if (title == null) title = "download";
 
         isCancelled = false; // Reset for new task
         startForeground(NOTIFICATION_ID, buildNotification("Starting download…"));
 
-        executor.execute(() -> download(url, format, audioOnly, folderUri, directUrl, startId));
+        String finalTitle = title;
+        executor.execute(() -> download(url, format, audioOnly, folderUri, directUrl, startId, finalTitle));
         return START_NOT_STICKY;
     }
 
@@ -96,7 +102,7 @@ public class VideoDownloadService extends Service {
     // Download logic
     // -------------------------------------------------------------------------
 
-    private void download(String youtubeUrl, String format, boolean audioOnly, String folderUriStr, String directUrl, int startId) {
+    private void download(String youtubeUrl, String format, boolean audioOnly, String folderUriStr, String directUrl, int startId, String title) {
         String fileName = "download.mp4"; // Default
         try {
             String streamUrl;
@@ -109,7 +115,7 @@ public class VideoDownloadService extends Service {
 
             String ext = resolveExtension(format, audioOnly);
             String videoId = YoutubeHelper.extractVideoId(youtubeUrl);
-            fileName = YoutubeHelper.toSafeFilename(videoId != null ? videoId : "download") + "." + ext;
+            fileName = YoutubeHelper.toSafeFilename(title) + "." + ext;
             String mimeType = audioOnly ? "audio/*" : "video/*";
 
             broadcastProgress(5, "Downloading…");
@@ -127,6 +133,14 @@ public class VideoDownloadService extends Service {
                     if (file != null) {
                         try (OutputStream out = getContentResolver().openOutputStream(file.getUri())) {
                             downloadToStream(streamUrl, out);
+                            
+                            // Save to history on success
+                            String thumb = "https://img.youtube.com/vi/" + videoId + "/mqdefault.jpg";
+                            DownloadItem item = new DownloadItem(title, videoId, file.getUri().toString(), 
+                                                               System.currentTimeMillis(), file.length(), 
+                                                               format, audioOnly, thumb);
+                            AppDatabase.getDatabase(this).downloadDao().insert(item);
+
                             broadcastComplete(file.getUri().toString());
                             updateNotification("Download complete: " + (file.getName() != null ? file.getName() : fileName));
                             return;
@@ -140,6 +154,14 @@ public class VideoDownloadService extends Service {
             fallbackFile = outputFile;
             try (OutputStream out = new FileOutputStream(outputFile)) {
                 downloadToStream(streamUrl, out);
+                
+                // Save to history on success
+                String thumb = "https://img.youtube.com/vi/" + videoId + "/mqdefault.jpg";
+                DownloadItem item = new DownloadItem(title, videoId, outputFile.getAbsolutePath(), 
+                                                   System.currentTimeMillis(), outputFile.length(), 
+                                                   format, audioOnly, thumb);
+                AppDatabase.getDatabase(this).downloadDao().insert(item);
+
                 broadcastComplete(outputFile.getAbsolutePath());
                 updateNotification("Download complete: " + fileName);
             }

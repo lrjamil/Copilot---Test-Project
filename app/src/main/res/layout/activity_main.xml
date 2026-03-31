@@ -25,12 +25,24 @@
             android:textColor="#FFFFFF"
             android:textSize="22sp"
             android:textStyle="bold"
-            android:layout_centerInParent="true"
+            android:layout_centerHorizontal="true"
             android:paddingBottom="12dp"
             android:shadowColor="#40000000"
             android:shadowDx="2"
             android:shadowDy="2"
             android:shadowRadius="4"/>
+
+        <ImageButton
+            android:id="@+id/btn_history"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignParentEnd="true"
+            android:layout_alignBottom="@id/header_title"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_recent_history"
+            app:tint="@android:color/white" />
 
     </RelativeLayout>
 
@@ -102,6 +114,7 @@
                 android:textSize="22sp"
                 android:textStyle="bold"
                 android:gravity="center"
+                android:visibility="gone"
                 android:layout_marginBottom="16dp" />
 
             <!-- URL input -->
@@ -191,20 +204,36 @@
             </LinearLayout>
 
             <!-- Progress container -->
-            <RelativeLayout
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/progress_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 android:visibility="gone">
 
+                <TextView
+                    android:id="@+id/tv_progress_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/progress_bar"
+                    android:layout_alignStart="@id/progress_bar"
+                    android:text=""
+                    android:textSize="11sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/progress_bar"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progress_bar"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
+                    android:minWidth="100dp"
                     android:layout_height="wrap_content"
                     android:layout_toStartOf="@id/btn_cancel_download"
-                    android:layout_centerVertical="true"
-                    android:layout_marginEnd="8dp" />
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/btn_cancel_download"
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <ImageButton
                     android:id="@+id/btn_cancel_download"
@@ -213,21 +242,17 @@
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@android:drawable/ic_menu_close_clear_cancel"
                     android:contentDescription="Cancel Download"
+                    android:padding="5dp"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
                     app:tint="#6A1B9A" />
 
-                <TextView
-                    android:id="@+id/tv_progress_label"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_below="@id/progress_bar"
-                    android:layout_alignStart="@id/progress_bar"
-                    android:layout_marginTop="4dp"
-                    android:text=""
-                    android:textSize="11sp" />
 
-            </RelativeLayout>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <!-- Status / log area -->
             <TextView

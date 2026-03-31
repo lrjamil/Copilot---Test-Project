@@ -45,6 +45,10 @@ dependencies {
     implementation libs.media3.ui
     implementation libs.okhttp
     implementation libs.androidx.documentfile
+    implementation libs.androidx.room.runtime
+    annotationProcessor libs.androidx.room.compiler
+    implementation libs.glide
+    annotationProcessor libs.glide.compiler
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
